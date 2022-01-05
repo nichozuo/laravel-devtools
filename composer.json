@@ -1,0 +1,32 @@
+{
+    "name": "nichozuo\/laravel-devtools",
+    "description": "Package description here.",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "nichozuo",
+            "email": "nichozuo@qq.com"
+        }
+    ],
+    "require": {
+        "php": "^7.3",
+        "laravel/framework": "^8.5",
+        "doctrine/dbal": "^3.0",
+        "jan-swiecki/simple-annotations": "^0.3",
+        "orangehill/iseed": "^3.0",
+        "ext-json": "*",
+        "nichozuo/laravel-helpers": "^0.0.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "Nichozuo\\LaravelDevtools\\": "src"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Nichozuo\\LaravelDevtools\\ServiceProvider"
+            ]
+        }
+    }
+}

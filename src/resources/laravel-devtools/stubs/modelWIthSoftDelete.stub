@@ -1,0 +1,33 @@
+<?php
+
+
+namespace App\Models;
+
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Nichozuo\LaravelHelpers\Traits\ModelTrait;
+
+/**
+ * @method static ifWhere(array $params, string $string)
+ * @method static ifWhereLike(array $params, string $string)
+ * @method static ifWhereIn(array $params, string $string)
+ * @method static ifRange(array $params, string $string)
+ * @method static create(array $array)
+ * @method static unique(array $params, array $array, string $string)
+ * @method static idp(array $params)
+ */
+class {{ModelName}} extends Model
+{
+    use ModelTrait, HasFactory;
+    use SoftDeletes;
+
+    # model defines
+    {{TableString}}
+    {{CommentString}}
+    {{FillableString}}
+    # relations
+
+    # scopes
+}
