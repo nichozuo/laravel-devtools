@@ -7,6 +7,7 @@ namespace Nichozuo\LaravelDevtools\Helper;
 use DocBlockReader\Reader;
 use Doctrine\DBAL\Schema\Table;
 use Exception;
+use ReflectionMethod;
 
 class GenHelper
 {
@@ -95,30 +96,30 @@ class GenHelper
 
     /**
      * @param $route
+     * @param $filePath
+     * @param $className
+     * @param $methodName
      * @return mixed|string|string[]
      * @throws Exception
      */
-    public static function genApiMD($route)
+    public static function genApiMD($route, $filePath, $className, $methodName)
     {
-        list($controllerClass, $actionName) = GenHelper::getInfoFromRoute($route);
-
-        $reader = new Reader($controllerClass, $actionName);
+        $reader = new Reader($className, $methodName);
         $data = $reader->getParameters();
-        $data['title'] = isset($data['title']) ? $data['title'] : $actionName;
+        $data['title'] = $data['title'] ?? $methodName;
         $data['intro'] = isset($data['intro']) ? ' > ' . $data['intro'] : '';
         $data['url'] = $route->uri;
         $data['method'] = $route->methods[0];
-        $data['params'] = self::getParams($data, 'params');
+        $data['params'] = self::getParams($filePath, $className, $methodName);
         $data['response'] = isset($data['response']) ?
             json_encode($data['response'], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) :
             json_encode([
                 'code' => 0,
                 'message' => 'ok'
             ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
-        $data['responseParams'] = self::getParams($data, 'responseParams', false);
-
+        $data['responseParams'] = self::getResponseParams($data, false);
         $stubContent = StubHelper::getStub('api.md');
-        $stubContent = StubHelper::replace([
+        return StubHelper::replace([
             '{{title}}' => $data['title'],
             '{{intro}}' => $data['intro'],
             '{{url}}' => $data['url'],
@@ -127,35 +128,64 @@ class GenHelper
             '{{response}}' => $data['response'],
             '{{responseParams}}' => $data['responseParams'],
         ], $stubContent);
-        return $stubContent;
+    }
+
+    private static function getParams($filePath, $className, $methodName)
+    {
+        $ref = new ReflectionMethod($className, $methodName);
+        $startLine = $ref->getStartLine();
+        $endLine = $ref->getEndLine();
+        $length = $endLine - $startLine;
+        $source = file($filePath);
+        $code = array_slice($source, $startLine, $length);
+//        dd($code, $startLine, $length);
+        $start = $end = false;
+        $arr = [];
+        foreach ($code as $line) {
+            $t = trim($line);
+            if ($t == ']);') $end = true;
+            if ($start && !$end)
+                $arr[] = $t;
+            if ($t == '$params = $request->validate([') $start = true;
+        }
+//        dd($arr);
+        $arr1 = [];
+        foreach ($arr as $item) {
+            $t1 = explode('\'', $item);
+            $t2 = explode('|', $t1[3]);
+            $t3 = explode('//', $t1[4]);
+            $t4 = [
+                $t1[1],
+                $t2[0] == 'nullable' ? '-' : 'Y',
+                $t2[1],
+                trim($t3[1])
+            ];
+            $arr1[] = implode('|', $t4);
+        }
+//        dd($arr1);
+        return implode(PHP_EOL, $arr1);
     }
 
     /**
      * @param $data
-     * @param $key
-     * @param bool $params
      * @return string
      */
-    private static function getParams($data, $key, $params = true): string
+    private static function getResponseParams($data): string
     {
         $t1 = '';
 
-        if (isset($data['id']) && $params) {
-            $t1 .= '|id|是|integer|id|' . PHP_EOL;
-        }
-
-        if (!isset($data[$key]))
+        if (!isset($data['responseParams']))
             return $t1;
 
-        if (!is_array($data[$key])) {
-            $item = $data[$key];
+        if (!is_array($data['responseParams'])) {
+            $item = $data['responseParams'];
             $item = str_replace('nullable|', '- |', $item);
             $item = str_replace('required|', '是 |', $item);
             $t1 .= '|' . str_replace(',', '|', $item) . '|' . PHP_EOL;
             return $t1;
         }
 
-        foreach ($data[$key] as $item) {
+        foreach ($data['responseParams'] as $item) {
             $item = str_replace('nullable|', '- |', $item);
             $item = str_replace('required|', '是 |', $item);
             $t1 .= '|' . str_replace(',', '|', $item) . '|' . PHP_EOL;
@@ -205,5 +235,46 @@ class GenHelper
             '{{columns}}' => $data['columns'],
         ], $stubContent);
         return $stubContent;
+    }
+
+    /**
+     * @param $controller
+     * @param $action
+     * @return void
+     * @throws Exception
+     */
+    public static function genModulesMD($controller, $action)
+    {
+        $className = 'App\\Modules\\' . $controller;
+        $path = app_path('Modules') . DIRECTORY_SEPARATOR . str_replace('\\', '/', $controller) . '.php';
+
+        // 读取注解
+        $reader = new Reader($className, $action);
+        $data = $reader->getParameters();
+        $intro = $data['intro'];
+
+        // 读取代码
+        $ref = new ReflectionMethod($className, $action);
+        $source = file($path);
+        $startLine = $ref->getStartLine();
+        $endLine = $ref->getEndLine();
+        $length = $endLine - $startLine;
+        $code = array_slice($source, $startLine, $length);
+
+        $start = $end = false;
+        $params = [];
+        foreach ($code as $line) {
+            $t = trim($line);
+            if ($t == ']);') $end = true;
+
+            if ($start && !$end)
+                $params[] = $t;
+
+            if ($t == '$params = $request->validate([') $start = true;
+        }
+//        $params = array:1 [
+//            0 => "'name' => 'nullable|string', // 名称"
+//        ]
+        dd($params);
     }
 }

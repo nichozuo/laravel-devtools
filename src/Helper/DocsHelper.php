@@ -12,61 +12,18 @@ use Illuminate\Support\Str;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionMethod;
-use Illuminate\Support\Arr;
 
 class DocsHelper
 {
     /**
-     * @param $type
-     * @param $key
      * @return array
      */
-    public static function getReadmeContent($type, $key): array
+    public static function getReadmeMenu(): array
     {
-        $path = resource_path('laravel-devtools/readme/' . $key);
-        if (!File::exists($path))
-            $path = __DIR__ . '/../resources/laravel-devtools/readme/' . $key;
-        return [
-            'content' => File::get($path)
-        ];
-    }
-
-    /**
-     * @param $key
-     * @return array
-     * @throws Exception
-     */
-    public static function getModulesContent($key): array
-    {
-        foreach (Route::getRoutes() as $route) {
-            if (!Str::startsWith($route->uri, 'api/'))
-                continue;
-            if ($route->getAction()['controller'] != '\\' . $key)
-                continue;
-
-            return [
-                'content' => GenHelper::genApiMD($route)
-            ];
-        }
-        return [];
-    }
-
-    /**
-     * @param $key
-     * @return array
-     * @throws Exception
-     */
-    public static function getDatabaseContent($key): array
-    {
-        $tables = TableHelper::listTables();
-        foreach ($tables as $table) {
-            if ($table->getName() != $key)
-                continue;
-            return [
-                'content' => GenHelper::genDatabaseMD($table)
-            ];
-        }
-        return [];
+        $path = resource_path('laravel-devtools/readme');
+        if (!File::isDirectory($path))
+            $path = __DIR__ . '/../resources/laravel-devtools/readme';
+        return self::getReadmeChildrenDirs($path);
     }
 
     /**
@@ -74,7 +31,7 @@ class DocsHelper
      * @param string $subDir
      * @return array
      */
-    public static function getReadmeChildrenDirs(string $path, string $subDir = ''): array
+    private static function getReadmeChildrenDirs(string $path, string $subDir = ''): array
     {
         $arr = [];
 
@@ -92,11 +49,6 @@ class DocsHelper
         foreach (File::files($path . $subDir) as $file) {
             $key = str_replace($path, '', $file->getPath()) . DIRECTORY_SEPARATOR . $file->getRelativePathname();
             $title = $file->getRelativePathname();
-//            $name = $file->getPathname();
-//            $key = str_replace($path, '', $name);
-//            $title = str_replace('.md', '', $key);
-//            $title = explode(DIRECTORY_SEPARATOR, $title);
-//            $title = end($title);
             $arr[] = [
                 'key' => $key,
                 'title' => $title,
@@ -107,89 +59,12 @@ class DocsHelper
     }
 
     /**
-     * @param string $dir
-     * @return string
-     */
-    public static function getModulesSubTitle(string $dir): string
-    {
-        $base = config('nichozuo.module_names');
-        if (isset($base[$dir]))
-            return $base[$dir] . '模块';
-        else
-            return '未知模块';
-    }
-
-    /**
-     * @param string $dir
-     * @return array
-     * @throws ReflectionException
-     */
-    public static function getModulesControllers(string $dir): array
-    {
-        $dirs = [];
-        foreach (File::allFiles(app_path('Modules' . DIRECTORY_SEPARATOR . $dir)) as $file) {
-            $pathName = $file->getRelativePathname();
-            $controllerName = str_replace('.php', '', $pathName);
-            if (count(explode('/', $controllerName)) >= 2) continue;
-            $ref = new ReflectionClass('App\\Modules\\' . str_replace('/', '\\', $dir) . '\\' . str_replace('/', '\\', $controllerName));
-            $dirs[] = [
-                'key' => $dir . DIRECTORY_SEPARATOR . $pathName,
-                'title' => $controllerName,
-                'subTitle' => self::getSubTitleOfController($ref),
-                'children' => self::getModulesActions($ref)
-            ];
-        }
-        return $dirs;
-    }
-
-    private static function getSubTitleOfController(ReflectionClass $ref)
-    {
-        $docs = $ref->getDocComment();
-        if (!$docs)
-            return '暂时没有名称';
-        $t1 = trim(explode('* ', $docs)[1]);
-        return str_replace(' * ', '', $t1);
-    }
-
-    private static function getModulesActions(ReflectionClass $ref): array
-    {
-        $files = [];
-        foreach ($ref->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
-            if ($method->class != $ref->getName() || $method->name == '__construct')
-                continue;
-            $action = new Reader($ref->getName(), $method->name);
-            $files[] = [
-                'key' => str_replace('App\\Modules\\', '', $ref->getName()) . '@' . $method->name,
-                'title' => $method->name,
-                'subTitle' => $action->getParameter('intro'),
-                'isLeaf' => true,
-            ];
-        }
-        return $files;
-    }
-
-    /**
-     * @param $key
-     * @return array
-     */
-    public static function getDir($key): array
-    {
-        $dir = File::directories($key);
-        $arr = [];
-        $arr = array_merge($arr, $dir);
-        foreach ($dir as $value) {
-            if (is_dir($value)) {
-                $arr = array_merge($arr, self::getDir($value));
-            }
-        }
-        return $arr;
-    }
-
-    /**
      * @intro 获取
      * @param string $path
      * @param string $subDir
      * @return array
+     * @throws ReflectionException
+     * @throws Exception
      */
     public static function getModulesMenu(string $path, string $subDir = ''): array
     {
@@ -219,5 +94,106 @@ class DocsHelper
             ];
         }
         return $arr;
+    }
+
+    /**
+     * @param ReflectionClass $ref
+     * @return array
+     * @throws Exception
+     */
+    private static function getModulesActions(ReflectionClass $ref): array
+    {
+        $files = [];
+        foreach ($ref->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
+            if ($method->class != $ref->getName() || $method->name == '__construct')
+                continue;
+            $action = new Reader($ref->getName(), $method->name);
+            $files[] = [
+                'key' => str_replace('App\\Modules\\', '', $ref->getName()) . '@' . $method->name,
+                'title' => $method->name,
+                'subTitle' => $action->getParameter('intro'),
+                'isLeaf' => true,
+            ];
+        }
+        return $files;
+    }
+
+    /**
+     * @return array
+     * @throws Exception
+     */
+    public static function getDatabaseMenu(): array
+    {
+        $tables = TableHelper::listTables();
+        $return = null;
+        foreach ($tables as $table) {
+            $return[] = [
+                'key' => $table->getName(),
+                'title' => $table->getName(),
+                'subTitle' => $table->getComment(),
+                'isLeaf' => true
+            ];
+        }
+        return $return;
+    }
+
+    /**
+     * @param $key
+     * @return array
+     */
+    public static function getReadmeContent($key): array
+    {
+        $path = resource_path('laravel-devtools/readme/' . $key);
+        if (!File::exists($path))
+            $path = __DIR__ . '/../resources/laravel-devtools/readme/' . $key;
+        return [
+            'content' => File::get($path)
+        ];
+    }
+
+    /**
+     * @param $key
+     * @return array
+     * @throws Exception
+     */
+    public static function getModulesContent($key): array
+    {
+        $fullName = '\\App\\Modules\\' . $key;
+        $t1 = explode('@', $fullName);
+        $className = $t1[0];
+        $methodName = $t1[1];
+        $filePath = app_path('Modules') . DIRECTORY_SEPARATOR . str_replace('\\', DIRECTORY_SEPARATOR, explode('@', $key)[0]) . '.php';
+        $content = '# 暂时没有内容';
+        foreach (Route::getRoutes() as $route) {
+            if (!Str::startsWith($route->uri, 'api/'))
+                continue;
+            if (!Str::startsWith($route->getAction()['controller'], '\\App\\'))
+                continue;
+            if ($route->getAction()['controller'] != $fullName)
+                continue;
+            $content = GenHelper::genApiMD($route, $filePath, $className, $methodName);
+            break;
+        }
+        return [
+            'content' => $content
+        ];
+    }
+
+    /**
+     * @param $key
+     * @return array
+     * @throws Exception
+     */
+    public static function getDatabaseContent($key): array
+    {
+        $tables = TableHelper::listTables();
+        foreach ($tables as $table) {
+            if ($table->getName() != $key)
+                continue;
+            return [
+                'content' => GenHelper::genDatabaseMD($table)
+            ];
+        }
+        return [];
     }
 }

@@ -7,10 +7,8 @@ namespace Nichozuo\LaravelDevtools\Controller;
 use Doctrine\DBAL\Exception;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller as BaseController;
-use Illuminate\Support\Facades\File;
 use Nichozuo\LaravelDevtools\Helper\DbalHelper;
 use Nichozuo\LaravelDevtools\Helper\DocsHelper;
-use Nichozuo\LaravelDevtools\Helper\TableHelper;
 use Nichozuo\LaravelHelpers\Traits\ControllerTrait;
 use ReflectionException;
 
@@ -34,6 +32,7 @@ class DocsController extends BaseController
      * @param Request $request
      * @return array
      * @throws Exception|ReflectionException
+     * @throws \Exception
      */
     public function getMenu(Request $request): array
     {
@@ -42,11 +41,11 @@ class DocsController extends BaseController
         ]);
         switch ($params['type']) {
             case 'readme':
-                return $this->getReadmeMenu();
+                return DocsHelper::getReadmeMenu();
             case 'modules':
-                return $this->getModulesMenu();
+                return DocsHelper::getModulesMenu(app_path('Modules' . DIRECTORY_SEPARATOR));
             case 'database':
-                return $this->getDatabaseMenu();
+                return DocsHelper::getDatabaseMenu();
             default:
                 return [];
         }
@@ -69,7 +68,7 @@ class DocsController extends BaseController
         ]);
         switch ($params['type']) {
             case 'readme':
-                return DocsHelper::getReadmeContent($params['type'], $params['key']);
+                return DocsHelper::getReadmeContent($params['key']);
             case 'modules':
                 return DocsHelper::getModulesContent($params['key']);
             case 'database':
@@ -77,44 +76,5 @@ class DocsController extends BaseController
             default:
                 return [];
         }
-    }
-
-    /**
-     * @return array
-     */
-    private function getReadmeMenu(): array
-    {
-        $path = resource_path('laravel-devtools/readme');
-        if (!File::isDirectory($path))
-            $path = __DIR__ . '/../resources/laravel-devtools/readme';
-        return DocsHelper::getReadmeChildrenDirs($path);
-    }
-
-    /**
-     * @return array
-     */
-    private function getModulesMenu(): array
-    {
-        $baseDir = app_path('Modules' . DIRECTORY_SEPARATOR);
-        return DocsHelper::getModulesMenu($baseDir);
-    }
-
-    /**
-     * @return array
-     * @throws Exception
-     */
-    private function getDatabaseMenu(): array
-    {
-        $tables = TableHelper::listTables();
-        $return = null;
-        foreach ($tables as $table) {
-            $return[] = [
-                'key' => $table->getName(),
-                'title' => $table->getName(),
-                'subTitle' => $table->getComment(),
-                'isLeaf' => true
-            ];
-        }
-        return $return;
     }
 }

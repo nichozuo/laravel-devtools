@@ -6,7 +6,6 @@ namespace Nichozuo\LaravelDevtools\Helper;
 
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
-use Doctrine\DBAL\Schema\Table;
 use Illuminate\Support\Facades\DB;
 
 class DbalHelper
@@ -40,65 +39,6 @@ class DbalHelper
     public static function comment(string $table, string $comment)
     {
         self::SM()::statement("ALTER TABLE `{$table}` comment '{$comment}'");
-    }
-
-    /**
-     * @param string $table
-     * @return bool
-     * @throws Exception
-     */
-    public static function hasSoftDelete(string $table): bool
-    {
-        $columns = array_keys(self::listTableColumns($table));
-        return in_array('deleted_at', $columns);
-    }
-
-    /**
-     * @return Table[]
-     * @throws Exception
-     */
-    public static function listTables(): array
-    {
-        return self::SM()->listTables();
-    }
-
-    /**
-     * @return array
-     * @throws Exception
-     */
-    public static function listTableNames(): array
-    {
-        return self::SM()->listTableNames();
-    }
-
-    /**
-     * @param $table
-     * @param bool $skipCommonFields
-     * @return array
-     * @throws Exception
-     */
-    public static function listTableColumns($table, bool $skipCommonFields = false): array
-    {
-        $columns = self::SM()->listTableColumns($table);
-        if (!$skipCommonFields)
-            return $columns;
-
-        $columnKeys = array_keys($columns);
-        $skipColumns = ['id', 'created_at', 'updated_at', 'deleted_at'];
-        foreach ($columnKeys as $columnKey)
-            if (in_array($columnKey, $skipColumns))
-                unset($columns[$columnKey]);
-
-        return $columns;
-    }
-
-    /**
-     * @param $column
-     * @return string
-     */
-    public static function getRequired($column): string
-    {
-        return ($column->getNotNull()) ? 'required' : 'nullable';
     }
 
     /**
