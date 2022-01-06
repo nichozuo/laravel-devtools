@@ -18,7 +18,7 @@ class DocsHelper
     /**
      * @return array
      */
-    public static function getReadmeMenu(): array
+    public static function GetReadmeMenu(): array
     {
         $path = resource_path('laravel-devtools/readme');
         if (!File::isDirectory($path))
@@ -66,7 +66,7 @@ class DocsHelper
      * @throws ReflectionException
      * @throws Exception
      */
-    public static function getModulesMenu(string $path, string $subDir = ''): array
+    public static function GetModulesMenu(string $path, string $subDir = ''): array
     {
         $arr = [];
         // 遍历文件夹
@@ -77,8 +77,10 @@ class DocsHelper
             $arr[] = [
                 'key' => str_replace('/', '\\', $key),
                 'title' => $title,
-                'children' => self::getModulesMenu($path, $key)
+                'subTitle' => self::getSubTitleForFolder(str_replace('/', '\\', $key)),
+                'children' => self::GetModulesMenu($path, $key)
             ];
+//            dd($arr);
         }
 
         // 遍历文件
@@ -90,6 +92,7 @@ class DocsHelper
             $arr[] = [
                 'key' => $nameSpace,
                 'title' => $fileName,
+                'subTitle' => ReflectHelper::GetControllerAnnotation('App\\Modules\\' . $nameSpace),
                 'children' => self::getModulesActions($ref)
             ];
         }
@@ -122,9 +125,9 @@ class DocsHelper
      * @return array
      * @throws Exception
      */
-    public static function getDatabaseMenu(): array
+    public static function GetDatabaseMenu(): array
     {
-        $tables = TableHelper::listTables();
+        $tables = TableHelper::ListTables();
         $return = null;
         foreach ($tables as $table) {
             $return[] = [
@@ -141,7 +144,7 @@ class DocsHelper
      * @param $key
      * @return array
      */
-    public static function getReadmeContent($key): array
+    public static function GetReadmeContent($key): array
     {
         $path = resource_path('laravel-devtools/readme/' . $key);
         if (!File::exists($path))
@@ -156,7 +159,7 @@ class DocsHelper
      * @return array
      * @throws Exception
      */
-    public static function getModulesContent($key): array
+    public static function GetModulesContent($key): array
     {
         $fullName = '\\App\\Modules\\' . $key;
         $t1 = explode('@', $fullName);
@@ -171,7 +174,7 @@ class DocsHelper
                 continue;
             if ($route->getAction()['controller'] != $fullName)
                 continue;
-            $content = GenHelper::genApiMD($route, $filePath, $className, $methodName);
+            $content = GenHelper::GenApiMD($route, $filePath, $className, $methodName);
             break;
         }
         return [
@@ -184,16 +187,26 @@ class DocsHelper
      * @return array
      * @throws Exception
      */
-    public static function getDatabaseContent($key): array
+    public static function GetDatabaseContent($key): array
     {
-        $tables = TableHelper::listTables();
+        $tables = TableHelper::ListTables();
         foreach ($tables as $table) {
             if ($table->getName() != $key)
                 continue;
             return [
-                'content' => GenHelper::genDatabaseMD($table)
+                'content' => GenHelper::GenDatabaseMD($table)
             ];
         }
         return [];
+    }
+
+    /**
+     * @param $key
+     * @return mixed|string
+     */
+    private static function getSubTitleForFolder($key)
+    {
+        $arr = config('zuo.docs.foldersSubTitleConfig');
+        return isset($arr[$key]) ? $arr[$key] : '';
     }
 }

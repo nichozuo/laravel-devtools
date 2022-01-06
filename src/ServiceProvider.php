@@ -26,7 +26,7 @@ class ServiceProvider extends \Illuminate\Support\ServiceProvider
         $this->publishes([
             __DIR__ . '/resources/laravel-doc-react/dist' => public_path('docs'),
             __DIR__ . '/resources/laravel-devtools' => resource_path('laravel-devtools'),
-            __DIR__ . '/resources/config/nichozuo.php' => config_path('nichozuo.php')
+            __DIR__ . '/resources/config/zuo.php' => config_path('zuo.php')
         ]);
         $this->loadRoutesFrom(__DIR__ . '/Routes/api.php');
     }

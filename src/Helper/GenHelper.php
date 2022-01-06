@@ -4,10 +4,9 @@
 namespace Nichozuo\LaravelDevtools\Helper;
 
 
-use DocBlockReader\Reader;
 use Doctrine\DBAL\Schema\Table;
 use Exception;
-use ReflectionMethod;
+use ReflectionException;
 
 class GenHelper
 {
@@ -15,7 +14,7 @@ class GenHelper
      * @param Table $table
      * @return string
      */
-    public static function genTableString(Table $table): string
+    public static function GenTableString(Table $table): string
     {
         return "protected \$table = '{$table->getName()}';";
     }
@@ -24,7 +23,7 @@ class GenHelper
      * @param Table $table
      * @return string
      */
-    public static function genCommentString(Table $table): string
+    public static function GenCommentString(Table $table): string
     {
         return "protected \$comment = '{$table->getComment()}';";
     }
@@ -33,12 +32,12 @@ class GenHelper
      * @param array $columns
      * @return string
      */
-    public static function genFillableString(array $columns): string
+    public static function GenFillableString(array $columns): string
     {
         $t1 = '';
         $columns = array_keys($columns);
         $fillable = implode("', '", $columns);
-        $t1 .= "protected \$fillable = ['{$fillable}'];" . PHP_EOL;
+        $t1 .= "protected \$fillable = ['$fillable'];" . PHP_EOL;
         return $t1;
     }
 
@@ -47,15 +46,15 @@ class GenHelper
      * @param string $tab
      * @return string
      */
-    public static function genRequestValidateString(array $columns, string $tab = ''): string
+    public static function GenRequestValidateString(array $columns, string $tab = ''): string
     {
         $t1 = '';
         foreach ($columns as $item) {
-            $name = ColumnHelper::getName($item);
-            $required = ColumnHelper::getRequired($item);
-            $type = ColumnHelper::getType($item);
-            $comment = ColumnHelper::getComment($item);
-            $t1 .= $tab . "'{$name}' => '{$required}|{$type}', // {$comment}";
+            $name = $item->getName();
+            $required = ColumnHelper::GetRequired($item);
+            $type = ColumnHelper::GetType($item);
+            $comment = $item->getComment();
+            $t1 .= $tab . "'$name' => '$required|$type', // $comment";
             if ($item != end($columns))
                 $t1 .= PHP_EOL;
         }
@@ -66,30 +65,13 @@ class GenHelper
      * @param array $columns
      * @return string
      */
-    public static function genInsertString(array $columns): string
+    public static function GenInsertString(array $columns): string
     {
         $t1 = '';
         foreach ($columns as $item) {
-            $name = ColumnHelper::getName($item);
-            $comment = ColumnHelper::getComment($item);
-            $t1 .= "'{$name}' => '', // {$comment}" . PHP_EOL;
-        }
-        return $t1;
-    }
-
-    /**
-     * @param array $columns
-     * @return string
-     */
-    public static function genAnnotationString(array $columns): string
-    {
-        $t1 = '';
-        foreach ($columns as $item) {
-            $name = ColumnHelper::getName($item);
-            $required = ColumnHelper::getRequired($item);
-            $type = ColumnHelper::getType($item);
-            $comment = ColumnHelper::getComment($item);
-            $t1 .= "* @params {$name},{$required}|{$type},{$comment}" . PHP_EOL;
+            $name = $item->getName();
+            $comment = $item->getComment();
+            $t1 .= "'$name' => '', // $comment" . PHP_EOL;
         }
         return $t1;
     }
@@ -102,10 +84,9 @@ class GenHelper
      * @return mixed|string|string[]
      * @throws Exception
      */
-    public static function genApiMD($route, $filePath, $className, $methodName)
+    public static function GenApiMD($route, $filePath, $className, $methodName)
     {
-        $reader = new Reader($className, $methodName);
-        $data = $reader->getParameters();
+        $data = ReflectHelper::GetMethodAnnotation($className, $methodName);
         $data['title'] = $data['title'] ?? $methodName;
         $data['intro'] = isset($data['intro']) ? ' > ' . $data['intro'] : '';
         $data['url'] = $route->uri;
@@ -117,9 +98,9 @@ class GenHelper
                 'code' => 0,
                 'message' => 'ok'
             ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
-        $data['responseParams'] = self::getResponseParams($data, false);
-        $stubContent = StubHelper::getStub('api.md');
-        return StubHelper::replace([
+        $data['responseParams'] = self::getResponseParams($data);
+        $stubContent = StubHelper::GetStub('api.md');
+        return StubHelper::Replace([
             '{{title}}' => $data['title'],
             '{{intro}}' => $data['intro'],
             '{{url}}' => $data['url'],
@@ -130,15 +111,16 @@ class GenHelper
         ], $stubContent);
     }
 
-    private static function getParams($filePath, $className, $methodName)
+    /**
+     * @param $filePath
+     * @param $className
+     * @param $methodName
+     * @return string
+     * @throws ReflectionException
+     */
+    private static function getParams($filePath, $className, $methodName): string
     {
-        $ref = new ReflectionMethod($className, $methodName);
-        $startLine = $ref->getStartLine();
-        $endLine = $ref->getEndLine();
-        $length = $endLine - $startLine;
-        $source = file($filePath);
-        $code = array_slice($source, $startLine, $length);
-//        dd($code, $startLine, $length);
+        $code = ReflectHelper::GetMethodCode($filePath, $className, $methodName);
         $start = $end = false;
         $arr = [];
         foreach ($code as $line) {
@@ -148,7 +130,6 @@ class GenHelper
                 $arr[] = $t;
             if ($t == '$params = $request->validate([') $start = true;
         }
-//        dd($arr);
         $arr1 = [];
         foreach ($arr as $item) {
             $t1 = explode('\'', $item);
@@ -162,7 +143,6 @@ class GenHelper
             ];
             $arr1[] = implode('|', $t4);
         }
-//        dd($arr1);
         return implode(PHP_EOL, $arr1);
     }
 
@@ -195,22 +175,10 @@ class GenHelper
     }
 
     /**
-     * @param $route
-     * @return array
-     */
-    public static function getInfoFromRoute($route): array
-    {
-        $t1 = explode('@', $route->action['controller']);
-        $controllerClass = $t1[0];
-        $actionName = $t1[1];
-        return array($controllerClass, $actionName);
-    }
-
-    /**
      * @param $table
      * @return mixed|string|string[]
      */
-    public static function genDatabaseMD($table)
+    public static function GenDatabaseMD($table)
     {
         $data['tableName'] = $table->getName();
         $data['tableComment'] = $table->getComment() ? '> ' . $table->getComment() : '';
@@ -228,53 +196,11 @@ class GenHelper
                     $column->getComment() ? $column->getComment() : ' ',
                 ]) . '|' . PHP_EOL;
         }
-        $stubContent = StubHelper::getStub('db.md');
-        $stubContent = StubHelper::replace([
+        $stubContent = StubHelper::GetStub('db.md');
+        return StubHelper::Replace([
             '{{tableName}}' => $data['tableName'],
             '{{tableComment}}' => $data['tableComment'],
             '{{columns}}' => $data['columns'],
         ], $stubContent);
-        return $stubContent;
-    }
-
-    /**
-     * @param $controller
-     * @param $action
-     * @return void
-     * @throws Exception
-     */
-    public static function genModulesMD($controller, $action)
-    {
-        $className = 'App\\Modules\\' . $controller;
-        $path = app_path('Modules') . DIRECTORY_SEPARATOR . str_replace('\\', '/', $controller) . '.php';
-
-        // 读取注解
-        $reader = new Reader($className, $action);
-        $data = $reader->getParameters();
-        $intro = $data['intro'];
-
-        // 读取代码
-        $ref = new ReflectionMethod($className, $action);
-        $source = file($path);
-        $startLine = $ref->getStartLine();
-        $endLine = $ref->getEndLine();
-        $length = $endLine - $startLine;
-        $code = array_slice($source, $startLine, $length);
-
-        $start = $end = false;
-        $params = [];
-        foreach ($code as $line) {
-            $t = trim($line);
-            if ($t == ']);') $end = true;
-
-            if ($start && !$end)
-                $params[] = $t;
-
-            if ($t == '$params = $request->validate([') $start = true;
-        }
-//        $params = array:1 [
-//            0 => "'name' => 'nullable|string', // 名称"
-//        ]
-        dd($params);
     }
 }

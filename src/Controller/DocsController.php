@@ -12,6 +12,9 @@ use Nichozuo\LaravelDevtools\Helper\DocsHelper;
 use Nichozuo\LaravelHelpers\Traits\ControllerTrait;
 use ReflectionException;
 
+/**
+ * @intro 文档控制器
+ */
 class DocsController extends BaseController
 {
     use ControllerTrait;
@@ -41,21 +44,18 @@ class DocsController extends BaseController
         ]);
         switch ($params['type']) {
             case 'readme':
-                return DocsHelper::getReadmeMenu();
+                return DocsHelper::GetReadmeMenu();
             case 'modules':
-                return DocsHelper::getModulesMenu(app_path('Modules' . DIRECTORY_SEPARATOR));
+                return DocsHelper::GetModulesMenu(app_path('Modules' . DIRECTORY_SEPARATOR));
             case 'database':
-                return DocsHelper::getDatabaseMenu();
+                return DocsHelper::GetDatabaseMenu();
             default:
                 return [];
         }
     }
 
     /**
-     * @params type,required|string,菜单类型，如：readme/modules/database
-     * @params key,required|string,菜单值
-     * @response {"code":0,"message":"ok","data":{"content":"# admins"}}
-     *
+     * @intro 获取md的内容
      * @param Request $request
      * @return array
      * @throws \Exception
@@ -68,11 +68,11 @@ class DocsController extends BaseController
         ]);
         switch ($params['type']) {
             case 'readme':
-                return DocsHelper::getReadmeContent($params['key']);
+                return DocsHelper::GetReadmeContent($params['key']);
             case 'modules':
-                return DocsHelper::getModulesContent($params['key']);
+                return DocsHelper::GetModulesContent($params['key']);
             case 'database':
-                return DocsHelper::getDatabaseContent($params['key']);
+                return DocsHelper::GetDatabaseContent($params['key']);
             default:
                 return [];
         }

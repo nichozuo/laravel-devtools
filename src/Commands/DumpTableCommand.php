@@ -31,15 +31,15 @@ class DumpTableCommand extends Command
             $this->line('Please Input Table Name');
         } else {
             $this->warn('生成 Table 模板');
-            $this->line(GenHelper::genTableString($table));
-            $this->line(GenHelper::genCommentString($table));
-            $this->line(GenHelper::genFillableString($columns));
+            $this->line(GenHelper::GenTableString($table));
+            $this->line(GenHelper::GenCommentString($table));
+            $this->line(GenHelper::GenFillableString($columns));
 
             $this->warn('生成 Validate 模板');
-            $this->line(GenHelper::genRequestValidateString($columns));
+            $this->line(GenHelper::GenRequestValidateString($columns));
 
             $this->warn('生成 Insert 模板');
-            $this->line(GenHelper::genInsertString($columns));
+            $this->line(GenHelper::GenInsertString($columns));
 
 //            $this->warn('生成 Annotation 模板');
 //            $this->line(GenHelper::genAnnotationString($columns));

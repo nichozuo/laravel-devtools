@@ -76,7 +76,7 @@ class TableHelper
      * @return Table[]
      * @throws Exception
      */
-    public static function listTables(): array
+    public static function ListTables(): array
     {
         return self::SM()->listTables();
     }

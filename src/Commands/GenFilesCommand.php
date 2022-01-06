@@ -93,15 +93,15 @@ class GenFilesCommand extends BaseCommand
         if ($options['model']) {
             $hasSoftDelete = TableHelper::HasSoftDelete($table->getColumns());
             $stubName = $hasSoftDelete ? 'modelWithSoftDelete.stub' : 'model.stub';
-            $stubContent = StubHelper::getStub($stubName);
-            $stubContent = StubHelper::replace([
+            $stubContent = StubHelper::GetStub($stubName);
+            $stubContent = StubHelper::Replace([
                 '{{ModelName}}' => $modelName,
-                '{{TableString}}' => GenHelper::genTableString($table),
-                '{{CommentString}}' => GenHelper::genCommentString($table),
-                '{{FillableString}}' => GenHelper::genFillableString($columns),
+                '{{TableString}}' => GenHelper::GenTableString($table),
+                '{{CommentString}}' => GenHelper::GenCommentString($table),
+                '{{FillableString}}' => GenHelper::GenFillableString($columns),
             ], $stubContent);
             $filePath = $this->laravel['path'] . '/Models/' . $modelName . '.php';
-            StubHelper::save($filePath, $stubContent);
+            StubHelper::Save($filePath, $stubContent);
         }
     }
 
@@ -151,16 +151,15 @@ class GenFilesCommand extends BaseCommand
         if ($options['controller']) {
             $hasSoftDelete = TableHelper::HasSoftDelete($table->getColumns());
             $stubName = $hasSoftDelete ? 'controllerWithSoftDelete.stub' : 'controller.stub';
-            $stubContent = StubHelper::getStub($stubName);
-            $stubContent = StubHelper::replace([
+            $stubContent = StubHelper::GetStub($stubName);
+            $stubContent = StubHelper::Replace([
                 '{{ModelName}}' => $modelName,
                 '{{TableComment}}' => $table->getComment(),
                 '{{ModuleName}}' => $moduleName,
-                '{{AnnotationString}}' => GenHelper::genAnnotationString($columns),
-                '{{InsertString}}' => GenHelper::genRequestValidateString($columns, "\t\t\t"),
+                '{{InsertString}}' => GenHelper::GenRequestValidateString($columns, "\t\t\t"),
             ], $stubContent);
             $filePath = $this->laravel['path'] . "/Modules/{$moduleName}/{$modelName}Controller.php";
-            StubHelper::save($filePath, $stubContent);
+            StubHelper::Save($filePath, $stubContent);
         }
     }
 }

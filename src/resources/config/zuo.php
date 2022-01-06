@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'column_types' => [
+    'dbTypeToPHPType' => [
         'float' => 'numeric',
         'double' => 'numeric',
         'decimal' => 'numeric',
@@ -30,7 +30,13 @@ return [
         'geometry' => 'geometry',
     ],
     'responseDontWrap' => [
-        '/api/app/version/check',
-        '/api/weapp/wechat_pay/notify'
+//        '/api/app/version/check',
+//        '/api/weapp/wechat_pay/notify'
+    ],
+    'docs' => [
+        'foldersSubTitleConfig' => [
+            'Admin' => '管理员模块',
+            'Admin\Temp' => '临时项目',
+        ]
     ]
 ];

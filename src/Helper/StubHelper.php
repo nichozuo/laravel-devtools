@@ -12,7 +12,7 @@ class StubHelper
      * @param $name
      * @return string
      */
-    public static function getStub($name): string
+    public static function GetStub($name): string
     {
         $path = resource_path('laravel-devtools/stubs/' . $name);
         if (!File::exists($path))
@@ -25,7 +25,7 @@ class StubHelper
      * @param $stubContent
      * @return mixed|string|string[]
      */
-    public static function replace(array $array, $stubContent)
+    public static function Replace(array $array, $stubContent)
     {
         foreach ($array as $key => $value) {
             $stubContent = str_replace($key, $value, $stubContent);
@@ -38,7 +38,7 @@ class StubHelper
      * @param string $stubContent
      * @param bool $force
      */
-    public static function save(string $filePath, string $stubContent, bool $force = false)
+    public static function Save(string $filePath, string $stubContent, bool $force = false)
     {
         $exists = File::exists($filePath);
         if (!$exists || $force) {
