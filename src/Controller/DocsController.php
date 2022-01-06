@@ -34,7 +34,7 @@ class DocsController extends BaseController
      * @title 获取Api文档的菜单
      * @param Request $request
      * @return array
-     * @throws Exception|ReflectionException
+     * @throws ReflectionException
      * @throws \Exception
      */
     public function getMenu(Request $request): array
